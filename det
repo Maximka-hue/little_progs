@@ -1,0 +1,278 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include <time.h>
+#include <string.h>
+#include <float.h>
+
+int scaninput(char *a);
+int bignum(char *c);
+int checkaddition(double a, double b);
+int checkaddition(double a, double b)
+{
+  if( ((a < 0.0) == (b < 0.0)) && (fabs(b) > DBL_MAX - fabs(a))) return -8;
+  if (((a > 0.0) == (b > 0.0)) && (b > DBL_MAX - a)) return -8;
+  if( ((a < 0.0) == (b < 0.0)) && (b < (-1)*DBL_MIN -a)) return -8;
+  return 0;
+}
+int checkdivision(double a, double b);
+int checkdivision(double a, double b)
+{
+  double t,s;
+  double r;
+  //printf("%.15e\n", a);
+  if((a >= 0)&&(a <= 0)) return 0;
+  t = log10(fabs(a));
+  //printf("%.15e\n", t);
+  s = log10(fabs(b));
+  r = fabs(t-s);
+  //printf("r == %.15e\n");
+  if (r > 308.0) return -1;
+  else return 0;
+}
+int checkmultiplication(double a, double b);
+int checkmultiplication(double a, double b)
+{
+  double t,s;
+  double r;
+  if((a >= 0)&&(a <= 0)) return 0;
+  if((b >= 0)&&(b <= 0)) return 0;
+  //printf("%.15e\n", a);
+  t = log10(fabs(a));
+  //printf("%.15e\n", t);
+  s = log10(fabs(b));
+  r = fabs(t+s);
+  //printf("r == %.15e\n");
+  if (r > (log10(1.7) + 308.0)) return -1;
+  else return 0;
+}
+int Gauss(double *A, int n,int *D);
+int Gauss(double *A, int n, int *D)
+{
+   int row, i, j, kewlrow;
+   double max, temp, *pa, *pA, *Kewl_row;
+   int yy;
+
+      
+
+   pa = A;
+   
+   for(row = 0; row < (n - 1); row++, pa += n)
+   {
+
+      Kewl_row = pa;
+      max = fabs(*(pa + row));
+      pA = pa + n;
+      kewlrow = row;
+      for (i = row + 1; i < n; pA += n, i++)
+         if ((temp = fabs(*(pA + row))) > max) { 
+            max = temp; Kewl_row = pA; kewlrow = i; 
+         }
+      if ((max >= 0.0) && (max <= 0.0)) {printf("Caught singular matrix!\n"); printf("final D :%d\n", *D); return -9;}
+      
+             
+      if (kewlrow != row)
+      {
+         for (i = row; i < n; i++)
+	 {
+            temp = *(pa + i);
+            *(pa + i) = *(Kewl_row + i);
+            *(Kewl_row + i) = temp;
+	    
+         }
+         (*D)++;
+         
+      }
+             
+
+      for (i = row + 1; i < n; i++) {
+         pA = A + i * n;
+	 yy = checkdivision(*(pA + row), *(pa + row));
+	 if (yy < 0) {printf("Can't calculate matrix(1)!\n"); return -8;}
+         temp = - *(pA + row) / *(pa + row);
+         *(pA + row) = 0.0;
+         for (j = row + 1; j < n; j++)
+	 {
+	   yy = checkmultiplication(temp, *(pa + j));
+	 if (yy < 0) {printf("Can't calculate matrix (2)!\n"); return -8;}
+	   *(pA + j) += temp * *(pa + j);
+	 }
+         
+      }
+   }
+      
+    printf("final D :%d\n", *D);             
+  
+   /*pa = A + (n - 1) * n;
+   for (row = n - 1; row >= 0; pa -= n, row--)
+   {
+      if (( *(pa + row) >= 0.0 ) && (*(pa + row) <= 0.0 )) {printf("Caught singular matrix!\n"); return -9;}
+	yy = checkdivision(1.0, *(pa + row));
+	 if (yy < 0) {printf("Can't calculate matrix (3)!\n"); return -8;}
+      temp = 1.0 / *(pa + row);
+      for ( i = row + 1; i < n; i++)
+      {
+	yy = checkdivision(*(pa + i), *(pa + row));
+	 if (yy < 0) {printf("Can't calculate matrix! (4)\n"); return -8;}
+	*(pa + i) *= temp; 
+      }
+      
+      for ( i = 0, pA = A; i < row; pA += n, i++) {
+         temp = *(pA + row);
+         for ( j = row + 1; j < n; j++)
+	 {
+	   yy = checkmultiplication(temp, *(pa + j));
+	 if (yy < 0) {printf("Can't calculate matrix! (5)\n"); return -8;}
+	   *(pA + j) -= temp * *(pa + j);
+	   
+	}
+        
+      }
+   }*/
+   return 0;
+}
+int main(void)
+{
+  double *A,**pA,det;
+  double b,f;
+  char k[258];
+  char *ptrEND3;
+  long int N;
+  int i,j,u, yy;
+  int D;
+  clock_t start, end;
+  double cpu_time_used;
+  D = 0;
+  printf("Please enter dimension N:\n");
+  scaninput(k);
+  if(k[0]=='\0') {printf("You pressed just enter\n"); return -1;}
+  if(bignum(k) == -1) {printf("Error range input\n"); return -1;}
+  N = strtol(k, &ptrEND3,10);
+  if(strlen(ptrEND3) != 0)
+    {
+        printf("Input error |%s|\n", ptrEND3);
+        return -1;
+    }
+    if((N == -1) || (N <= 0) || (N > 40000)){printf("Bad N input\n"); return -1;}
+  A = (double*) malloc(sizeof(double) * N * N);  
+  pA = (double**) malloc(sizeof(double) * N);  
+  for(i = 1, *pA = A; i < N; i++) *(pA+i) = *(pA + i - 1) + N;
+  for(i=0;i< N;i++)
+  for(j=0;j< N;j++)
+  {
+   /*printf("ENTER A[%d][%d]=",i,j);
+    scanf("%lf",&pA[i][j]);*/
+    
+    b = i + j + 1;
+    
+    f =1/b;
+    pA[i][j] = f;
+  }
+  
+  
+  
+  for (i = 0; i < N; i++)
+  {
+    for (j = 0; j < N; j++) printf("%lf   ", pA[i][j]);
+      printf("\n");
+  }
+  printf("Starting gauss method \n");
+  start = clock();
+   u =  Gauss(&pA[0][0], N, &D);
+  end = clock();
+  for (i = 0; i < N; i++)
+  {
+    for (j = 0; j < N; j++) printf("%lf   ", pA[i][j]);
+      printf("\n");
+  }
+  cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
+  printf("Time used for gauss: %.15e \n", cpu_time_used);
+  if (u == -8) {printf("\n"); return -1;}
+  if (u == -9) {printf("Value of determinant equals zero\n"); return -1;}
+  
+    printf("                         \n");
+    for (i = 0; i < N; i++)
+  {
+    for (j = 0; j < N; j++) printf("%0.15e   ", pA[i][j]);
+      printf("\n");
+  }
+  det = pow(-1, D);
+ // printf("%.15e    == determinant          \n", det);
+   printf("Time used for gauss: %.15e \n", cpu_time_used);
+   for(j = 0;j < N; j++)
+   {
+     yy = checkmultiplication(det, pA[j][j]);
+	 if (yy < 0) {printf("Value of determinant will exceed range of double!\n"); return -1;}
+     det = det * pA[j][j];
+   }
+   printf("Determinant: %.15e\n", det);
+  return 0;
+}
+
+
+
+int scaninput(char *a)
+{
+    int i=0, j=0;
+    char ch;
+    do
+    {
+        ch=getchar();
+        if(i<256)
+        {
+        if(ch!='\n')a[i]=ch;
+        i++;
+        }
+        j++;
+        if(j>=256)
+    {
+      printf("%d\n", j);
+      printf("error stdin overflow\n");
+      exit(EXIT_FAILURE);
+    }
+    }
+    while(ch!='\n');
+    a[i-1]='\0';
+    return 1;
+}
+int bignum (char *c)
+{
+int j, size=0, save=0;
+char *num;
+char *ost;
+float y;
+char b[258];
+double u;
+double q;
+size = strlen(c);
+for( j=0; j < size;j++)
+{
+if( (c[j]=='E')||(c[j]=='e') )
+{
+save=j;
+break;
+}
+}
+if (save>0)
+{
+num = &c[save+1];
+}
+else {return 0; }
+y=strtod(num, &ost);
+if ((y<=0)&&(y>=0))
+{return 0;}
+if ((y>308) || (y < -308))
+{
+printf ("\n %s = Range input Error. \n  \n", c);
+return -1;
+}
+if ((y <= 308) || (y >= -308))
+{
+  memcpy(b, c, (j));
+  
+  u = strtod(b, NULL); 
+}
+q = log10(fabs(u)) + fabs(y);
+if((fabs(u) > 1.7) || (q > (log10(1.7) + 308))) {printf("This number exceeds range of double!\n"); return -1;}
+return 0;
+}
